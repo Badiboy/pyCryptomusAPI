@@ -33,4 +33,4 @@ jobs:
           pip3 install -r requirements.txt
           pip3 install pytest
           python setup.py install
-          pytest pyCryptoPayAPI/tests.py
+          pytest pyCryptomusAPI/tests.py

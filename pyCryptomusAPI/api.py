@@ -27,7 +27,7 @@ class pyCryptomusAPI:
                  merchant_uuid, payment_api_key = None, payout_api_key = None,
                  print_errors = False, timeout = None):
         """
-        Create the pyCryptoPayAPI instance.
+        Create the pyCryptomusAPI instance.
 
         :param merchant_uuid: The merchant's uuid, which you can find in the merchant's personal account in the settings section.
         :param payment_api_key: API key for processing payments
