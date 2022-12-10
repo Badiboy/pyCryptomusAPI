@@ -3,7 +3,7 @@ from hashlib import md5
 import base64
 import requests
 
-import cryto_types
+import .cryto_types
 
 API_URL = "https://api.cryptomus.com/v1/"
 
