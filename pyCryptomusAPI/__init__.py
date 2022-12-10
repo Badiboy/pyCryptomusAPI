@@ -1,2 +1,2 @@
-import .cryto_types.py
+import cryto_types
 from .api import *
