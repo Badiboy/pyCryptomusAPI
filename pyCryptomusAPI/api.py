@@ -3,7 +3,7 @@ from hashlib import md5
 import base64
 import requests
 
-import .cryto_types
+from .cryto_types import *
 
 API_URL = "https://api.cryptomus.com/v1/"
 
@@ -107,7 +107,7 @@ class pyCryptomusAPI:
         """
         method = "balance"
         resp = self.__request(method, 1).get("result")
-        return cryto_types.Balance.de_json(resp[0])
+        return Balance.de_json(resp[0])
 
     def payment_services(self):
         """
@@ -117,7 +117,7 @@ class pyCryptomusAPI:
         """
         method = "payment/services"
         resp = self.__request(method, 1).get("result")
-        return [cryto_types.Service.de_json(i) for i in resp]
+        return [Service.de_json(i) for i in resp]
 
     def payout_services(self):
         """
@@ -127,4 +127,4 @@ class pyCryptomusAPI:
         """
         method = "payout/services"
         resp = self.__request(method, 2).get("result")
-        return [cryto_types.Service.de_json(i) for i in resp]
+        return [Service.de_json(i) for i in resp]
