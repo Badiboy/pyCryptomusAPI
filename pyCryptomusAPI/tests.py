@@ -1,4 +1,5 @@
-import inspect, datetime
+import inspect
+import uuid
 from time import sleep
 try:
     from pyCryptomusAPI import pyCryptomusAPI, pyCryptomusAPIException
@@ -40,8 +41,15 @@ def test_api_functions():
         payment_api_key=test_api_token_payment,
         payout_api_key=test_api_token_payout,
         print_errors=True)
-    run_and_print(lambda: client.balance())
+    invoice = run_and_print(lambda: client.create_invoice(1, "USDT", str(uuid.uuid4())))
+    wallet = run_and_print(lambda: client.create_wallet("TRON", "TRX", str(uuid.uuid4())))
+    run_and_print(lambda: client.block_wallet(wallet_uuid = wallet.uuid))                         # Server error (reason unknown)
+    run_and_print(lambda: client.block_wallet_refund(wallet.address, wallet_uuid = wallet.uuid))  # Server error (it's ok)
+    run_and_print(lambda: client.payment_information(invoice_uuid=invoice.uuid))
+    run_and_print(lambda: client.refund(wallet.address, True, invoice_uuid=invoice.uuid))           # Server error (looks ok)
     run_and_print(lambda: client.payment_services())
+    run_and_print(lambda: client.payment_history())
     run_and_print(lambda: client.payout_services())
+    run_and_print(lambda: client.balance())
 
 test_api_functions()

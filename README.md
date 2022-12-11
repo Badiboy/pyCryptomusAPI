@@ -3,7 +3,7 @@
 [![PyPi downloads](https://img.shields.io/pypi/dm/pyCryptomusAPI.svg)](https://pypi.org/project/pyCryptomusAPI/)
 
 # <p align="center">pyCryptomusAPI</p>
-Simple Python implementation of [Cryptomus](https://cryptomus.com) public [API](https://doc.cryptomus.com)
+Python implementation of [Cryptomus](https://cryptomus.com) public [API](https://doc.cryptomus.com)
 
 # Installation
 Installation using pip (a Python package manager):

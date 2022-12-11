@@ -1,4 +1,3 @@
-import json
 from hashlib import md5
 import base64
 import requests
@@ -99,15 +98,204 @@ class pyCryptomusAPI:
         else:
             return resp
 
-    def balance(self):
+    def create_invoice(self,
+           amount, currency, order_id, network = None, url_return = None, url_callback = None,
+           is_payment_multiple = None, lifetime = None, to_currency = None, subtract = None,
+           accuracy_payment_percent = None, additional_data = None, currencies = None,
+           except_currencies = None):
         """
-        Get balance of merchant(account) or user(wallet)
-        https://doc.cryptomus.com/balance
+        Creating an invoice
+        https://doc.cryptomus.com/payments/creating-invoice
         Requires PAYMENT API key
+
+        amount: (Float) The amount of the invoice
+        currency: (String) Currency code (https://doc.cryptomus.com/reference)
+        order_id: (String) Order ID in your system
+        network: (String, Optional) Blockchain network code (https://doc.cryptomus.com/reference)
+        url_return: (String, Optional) Url to which the user will return after payment
+        url_callback: (String, Optional) Url to which webhooks with payment status will be sent
+        is_payment_multiple: (Bool, Optional) Whether payment of the remaining amount is possible (true/false)
+        lifetime: (?Int?, Optional) The lifespan of the issued invoice (?in seconds?)
+        to_currency: (String, Optional) Currency code for accepting payments
+        subtract: (?Float?, Optional) Percentage of the payment commission charged to the client. The subtract parameter allows you to specify what percentage of the payment acceptance will be paid by the client. If you have a payment commission 1%, then if you create an invoice for 100 USDT with subtract=100 (the client pays 100% commission), the client will have to pay 101 USDT.
+        accuracy_payment_percent: (?Float?, Optional) Acceptable inaccuracy in payment (min 0, max 5.00)
+        additional_data: (?String?, Optional) Additional information
+        currencies: (List[Currency], Optional) List of allowed currencies for payment Structure
+        except_currencies: (List[Currency], Optional) List of excluded currencies for payment Structure
         """
-        method = "balance"
-        resp = self.__request(method, 1).get("result")
-        return Balance.de_json(resp[0])
+        method = "payment"
+        params = {
+            "amount": str(amount),
+            "currency": currency,
+            "order_id": str(order_id),
+        }
+        if network:
+            params["network"] = network
+        if url_return:
+            params["url_return"] = url_return
+        if url_callback:
+            params["url_callback"] = url_callback
+        if is_payment_multiple is not None:
+            params["is_payment_multiple"] = is_payment_multiple
+        if lifetime is not None:
+            params["lifetime"] = str(lifetime)
+        if to_currency:
+            params["to_currency"] = to_currency
+        if subtract is not None:
+            params["subtract"] = str(subtract)
+        if accuracy_payment_percent is not None:
+            params["accuracy_payment_percent"] = str(accuracy_payment_percent)
+        if additional_data:
+            params["additional_data"] = additional_data
+        if currencies:
+            params["currencies"] = [i.to_dict() for i in currencies]
+        if except_currencies:
+            params["except_currencies"] = [i.to_dict() for i in except_currencies]
+        resp = self.__request(method, 1, **params).get("result")
+        return Invoice.de_json(resp)
+
+    def create_wallet(self,
+           network, currency, order_id, url_callback = None):
+        """
+        Creating a Static wallet
+        https://doc.cryptomus.com/payments/creating-static
+        Requires PAYMENT API key
+
+        network: (String) Blockchain network code (https://doc.cryptomus.com/reference)
+        currency: (String) Currency code (https://doc.cryptomus.com/reference)
+        order_id: (String) Order ID in your system
+        url_callback: (String, Optional) Url to which webhooks with payment status will be sent
+        """
+        method = "wallet"
+        params = {
+            "network": network,
+            "currency": currency,
+            "order_id": str(order_id),
+        }
+        if url_callback:
+            params["url_callback"] = url_callback
+        resp = self.__request(method, 1, **params).get("result")
+        return Wallet.de_json(resp)
+
+    def block_wallet(self,
+           wallet_uuid = None, order_id = None, is_force_refund = None):
+        """
+        Block static wallet
+        https://doc.cryptomus.com/payments/block-wallet
+        You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
+        Requires PAYMENT API key
+
+        wallet_uuid: (String, Optional if order_id set) Wallet UUID
+        order_id: (String, Optional if wallet_uuid set) Order ID in your system
+        is_force_refund: (Bool, Optional) Refund all incoming payments to sender’s address
+        """
+        method = "wallet/block-address"
+        params = {
+        }
+        if not(wallet_uuid) and not(order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        if wallet_uuid:
+            params["uuid"] = wallet_uuid
+        if order_id:
+            params["order_id"] = order_id
+        if is_force_refund is not None:
+            params["is_force_refund"] = is_force_refund
+        resp = self.__request(method, 1, **params).get("result")
+        return resp
+
+    def block_wallet_refund(self,
+           address, wallet_uuid = None, order_id = None):
+        """
+        Refund payments on blocked address
+        https://doc.cryptomus.com/payments/refundblocked
+        You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
+        Requires PAYMENT API key
+
+        address: (String) Address (wallet addres? refund address?)
+        wallet_uuid: (String, Optional if order_id set) Wallet UUID
+        order_id: (String, Optional if wallet_uuid set) Order ID in your system
+        """
+        method = "wallet/blocked-address-refund"
+        params = {
+            "address": address,
+        }
+        if not(wallet_uuid) and not(order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        if wallet_uuid:
+            params["uuid"] = wallet_uuid
+        if order_id:
+            params["order_id"] = order_id
+        resp = self.__request(method, 1, **params).get("result")
+        return resp
+
+    def payment_information(self,
+           invoice_uuid = None, order_id = None):
+        """
+        Payment information
+        https://doc.cryptomus.com/payments/payment-information
+        You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
+        Requires PAYMENT API key
+
+        invoice_uuid: (String, Optional if order_id set) Invoice UUID
+        order_id: (String, Optional if wallet_uuid set) Order ID in your system
+        """
+        method = "payment/info"
+        params = {
+        }
+        if not(invoice_uuid) and not(order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        if invoice_uuid:
+            params["uuid"] = invoice_uuid
+        if order_id:
+            params["order_id"] = order_id
+        resp = self.__request(method, 1, **params).get("result")
+        return Invoice.de_json(resp)
+
+    def refund(self,
+           address, is_subtract, invoice_uuid = None, order_id = None):
+        """
+        Refund
+        https://doc.cryptomus.com/payments/refund
+        You need to pass one of the required parameters, if you pass both, the account will be identified by invoice_uuid
+        Requires PAYMENT API key
+
+        address: (String) Refund address
+        is_subtract: (Bool) Determines whether the commission is to be charged to the merchant or to the client (True - to the merchant, False - to the client)
+        invoice_uuid: (String, Optional if order_id set) Invoice UUID
+        order_id: (String, Optional if wallet_uuid set) Order ID in your system
+        """
+        method = "payment/refund"
+        params = {
+            "address": address,
+            "is_subtract": is_subtract,
+        }
+        if not(invoice_uuid) and not(order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        if invoice_uuid:
+            params["uuid"] = invoice_uuid
+        if order_id:
+            params["order_id"] = order_id
+        resp = self.__request(method, 1, **params).get("result")
+        return Invoice.de_json(resp)
+
+    def payment_history(self, cursor = None):
+        """
+        Payment history
+        https://doc.cryptomus.com/payments/payment-history
+        Requires PAYMENT API key
+
+        cursor: (String, Optional) Page cursor (hash)
+        """
+        params = {
+        }
+        if cursor:
+            params["cursor"] = cursor
+        method = "payment/list"
+        if params:
+            resp = self.__request(method, 1, **params).get("result")
+        else:
+            resp = self.__request(method, 1).get("result")
+        return PaymentsHistory.de_json(resp)
 
     def payment_services(self):
         """
@@ -128,3 +316,13 @@ class pyCryptomusAPI:
         method = "payout/services"
         resp = self.__request(method, 2).get("result")
         return [Service.de_json(i) for i in resp]
+
+    def balance(self):
+        """
+        Get balance of merchant(account) or user(wallet)
+        https://doc.cryptomus.com/balance
+        Requires PAYMENT API key
+        """
+        method = "balance"
+        resp = self.__request(method, 1).get("result")
+        return Balance.de_json(resp[0])
