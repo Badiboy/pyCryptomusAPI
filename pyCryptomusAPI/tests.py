@@ -46,7 +46,7 @@ def test_api_functions():
     run_and_print(lambda: client.block_wallet(wallet_uuid = (wallet.uuid if wallet else "123")))                         # Server error (reason unknown)
     run_and_print(lambda: client.block_wallet_refund(wallet.address, wallet_uuid = (wallet.uuid if wallet else "123")))  # Server error (it's ok)
     run_and_print(lambda: client.payment_information(invoice_uuid=(invoice.uuid if invoice else "123")))
-    run_and_print(lambda: client.refund(wallet.address, True, invoice_uuid=(invoice.uuid if invoice else "123")))        # Server error (looks ok)
+    run_and_print(lambda: client.refund((wallet.address if wallet else "123"), True, invoice_uuid=(invoice.uuid if invoice else "123")))        # Server error (looks ok)
     run_and_print(lambda: client.payment_services())
     run_and_print(lambda: client.payment_history())
     run_and_print(lambda: client.payout_services())
