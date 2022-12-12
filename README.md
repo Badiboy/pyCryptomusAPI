@@ -17,13 +17,16 @@ $ pip install pyCryptomusAPI
 Everything is as simple as the [API](https://help.crypt.bot/crypto-pay-api#available-methods) itself.
 1. Create pyCryptomusAPI instance
 2. Access API methods in pythonic notation (e.g. "Creating an invoice" -> create_invoice())
+3. Most methods return result as correspondent class, so you can access data as fields 
 ```
 from pyCryptomusAPI import pyCryptomusAPI
 client = pyCryptomusAPI(
     "xxxx-xxxx-xxxx-xxxx-xxxx",  # Merchand UUID
     payment_api_key="xxxxxxx",   # Payment API key (for payment methods)
     payout_api_key="xxxxxxx")    # Payout API key (for payout methods)
-print(client.balance())
+balance = client.balance()
+for item in balance.merchant:
+    print("Merchant balance: {} {}".format(item.balance, item.currency_code))
 ```
 You can also check tests.py.
 
