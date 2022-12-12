@@ -42,11 +42,14 @@ def test_api_functions():
         payout_api_key=test_api_token_payout,
         print_errors=True)
     invoice = run_and_print(lambda: client.create_invoice(1, "USDT", str(uuid.uuid4())))
+    invoice_uuid = invoice.uuid if invoice else "123"
     wallet = run_and_print(lambda: client.create_wallet("TRON", "TRX", str(uuid.uuid4())))
-    run_and_print(lambda: client.block_wallet(wallet_uuid = (wallet.uuid if wallet else "123")))                         # Server error (reason unknown)
-    run_and_print(lambda: client.block_wallet_refund((wallet.address if wallet else "123"), wallet_uuid = (wallet.uuid if wallet else "123")))  # Server error (it's ok)
-    run_and_print(lambda: client.payment_information(invoice_uuid=(invoice.uuid if invoice else "123")))
-    run_and_print(lambda: client.refund((wallet.address if wallet else "123"), True, invoice_uuid=(invoice.uuid if invoice else "123")))        # Server error (looks ok)
+    wallet_uuid = wallet.uuid if wallet else "123"
+    wallet_adress = wallet.address if wallet else "123"
+    run_and_print(lambda: client.block_wallet(wallet_uuid = wallet_uuid))                        # Server error (reason unknown)
+    run_and_print(lambda: client.block_wallet_refund(wallet_adress, wallet_uuid = wallet_uuid))  # Server error (it's ok)
+    run_and_print(lambda: client.payment_information(invoice_uuid = invoice_uuid))
+    run_and_print(lambda: client.refund(wallet_adress, True, invoice_uuid = invoice_uuid))       # Server error (looks ok)
     run_and_print(lambda: client.payment_services())
     run_and_print(lambda: client.payment_history())
     run_and_print(lambda: client.payout_services())
