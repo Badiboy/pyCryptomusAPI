@@ -282,6 +282,10 @@ class PaymentPaginate(JsonDeserializable):
 
 # noinspection PyMethodOverriding
 class PaymentsHistory(JsonDeserializable):
+    def __init__(self):
+        self.items = []
+        self.paginate = PaymentPaginate()
+
     @classmethod
     def de_json(cls, json_dict):
         data = cls.check_json(json_dict)

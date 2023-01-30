@@ -91,7 +91,12 @@ class pyCryptomusAPI:
             raise pyCryptomusAPIException(code, message)
         elif not resp.get("result"):
             code = base_resp.status_code if base_resp else -5
-            message = resp.get("message") if resp.get("message") else "No error info provided"
+            if resp.get("message"):
+                message = resp["message"]
+            elif resp.get("errors"):
+                message = resp["errors"]
+            else:
+                message = "No error info provided"
             if self.print_errors:
                 print("Response: {}".format(resp))
             raise pyCryptomusAPIException(code, message)
@@ -296,6 +301,65 @@ class pyCryptomusAPI:
         else:
             resp = self.__request(method, 1).get("result")
         return PaymentsHistory.de_json(resp)
+
+    def payment_history_filtered(
+            self, max_results = 15, max_pages = 10,
+            currencies = None, networks = None, addresses = None,
+            statuses = None, is_final = None):
+        """
+        Payment history (advanced mode)
+
+        Based on: payment_history
+        https://doc.cryptomus.com/payments/payment-history
+        Requires PAYMENT API key
+
+        Collects only results under filters.
+        Process as many pages as needed to collect max_results, but not more than max_pages.
+
+        max_results: (Int) Max number of results to collect
+        max_pages: (Int, Optional, default=10) Max number of pages to process
+        currencies: (List of Strings, Optional) List of accepted currencies. Codes: https://doc.cryptomus.com/reference
+        networks: (List of Strings, Optional) List of accepted networks. Codes: https://doc.cryptomus.com/reference
+        addresses: (List of Strings, Optional) List of accepted addresses
+        statuses: (List of Strings, Optional) List of accepted statuses. Codes: https://doc.cryptomus.com/payments/payment-statuses
+        is_final: (Bool, Optional) If True, only final payments will be collected, if False - only non-final
+        """
+
+        result = PaymentsHistory()
+
+        page_number = 0
+        cursor = None
+        while page_number < max_pages:
+            resp = self.payment_history(cursor = cursor)
+
+            if not resp.items:
+                # No (more) payments
+                break
+
+            for payment in resp.items:
+                if currencies and not(payment.currency in currencies):
+                    continue
+                if networks and not(payment.network in networks):
+                    continue
+                if addresses and not(payment.address in addresses):
+                    continue
+                if statuses and not(payment.status in statuses):
+                    continue
+                if (is_final is not None) and payment.is_final != is_final:
+                    continue
+                result.items.append(payment)
+
+                if len(result.items) >= max_results:
+                    # Enough results collected
+                    break
+
+            cursor = resp.paginate.nextCursor
+            if not cursor:
+                # No more pages
+                break
+            page_number += 1
+
+        return result
 
     def payment_services(self):
         """
