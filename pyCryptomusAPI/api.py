@@ -1,4 +1,5 @@
 from hashlib import md5
+from time import sleep
 import base64
 import requests
 
@@ -305,7 +306,7 @@ class pyCryptomusAPI:
     def payment_history_filtered(
             self, max_results = 15, max_pages = 10,
             currencies = None, networks = None, addresses = None,
-            statuses = None, is_final = None):
+            statuses = None, is_final = None, page_delay = 1):
         """
         Payment history (advanced mode)
 
@@ -323,6 +324,7 @@ class pyCryptomusAPI:
         addresses: (List of Strings, Optional) List of accepted addresses
         statuses: (List of Strings, Optional) List of accepted statuses. Codes: https://doc.cryptomus.com/payments/payment-statuses
         is_final: (Bool, Optional) If True, only final payments will be collected, if False - only non-final
+        page_delay: (Int, Optional, default=1) Delay between pages (in seconds)
         """
 
         result = PaymentsHistory()
@@ -330,6 +332,7 @@ class pyCryptomusAPI:
         page_number = 0
         cursor = None
         while page_number < max_pages:
+            if page_number > 0: sleep(1)
             resp = self.payment_history(cursor = cursor)
 
             if not resp.items:
@@ -352,6 +355,10 @@ class pyCryptomusAPI:
                 if len(result.items) >= max_results:
                     # Enough results collected
                     break
+
+            if len(result.items) >= max_results:
+                # Enough results collected
+                break
 
             cursor = resp.paginate.nextCursor
             if not cursor:
