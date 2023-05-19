@@ -25,7 +25,7 @@ class pyCryptomusAPI:
 
     def __init__(self,
                  merchant_uuid, payment_api_key = None, payout_api_key = None,
-                 print_errors = False, timeout = None):
+                 print_errors = False, timeout = None, add_request_params = None):
         """
         Create the pyCryptomusAPI instance.
 
@@ -34,12 +34,14 @@ class pyCryptomusAPI:
         :param payout_api_key: API key for accepting payment and making payouts
         :param print_errors: (Optional) Print dumps on request errors
         :param timeout: (Optional) Request timeout
+        :param add_request_params: (List, Optional) Additional request parameters to pass with API calls
         """
         self.merchant_uuid = merchant_uuid
         self.payment_api_key = payment_api_key
         self.payout_api_key = payout_api_key
         self.print_errors = print_errors
         self.timeout = timeout
+        self.add_request_params = add_request_params
         if not(self.payment_api_key) and not(self.payout_api_key):
             raise Exception("You must specify at least one API key.")
 
@@ -55,6 +57,9 @@ class pyCryptomusAPI:
             data = dict(kwargs)
         else:
             data = {}
+
+        if self.add_request_params:
+            data.update(self.add_request_params)
 
         base_resp = None
         try:
