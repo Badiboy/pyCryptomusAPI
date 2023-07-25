@@ -64,9 +64,13 @@ class pyCryptomusAPI:
         base_resp = None
         try:
             key = self.payment_api_key if (mode == 1) else self.payout_api_key
+            if key and not(key.isascii()):
+                raise pyCryptomusAPIException(-6, "Key contains non-ascii characters")
             json_dumps = json.dumps(data)
             # json_dumps = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
             pre_sign = json_dumps if data else ""
+            if pre_sign and not(pre_sign.isascii()):
+                raise pyCryptomusAPIException(-6, "Data dump contains non-ascii characters")
             sign = md5(base64.b64encode(pre_sign.encode('ascii')) + key.encode('ascii')).hexdigest()
             # sign = md5(base64.encodebytes(pre_sign.encode('utf-8')) + key.encode('utf-8')).hexdigest()
             headers = {
@@ -106,6 +110,7 @@ class pyCryptomusAPI:
             if self.print_errors:
                 print("Response: {}".format(resp))
             raise pyCryptomusAPIException(code, message)
+        # code -6 is used above
         else:
             return resp
 
