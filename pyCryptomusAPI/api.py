@@ -64,21 +64,25 @@ class pyCryptomusAPI:
         base_resp = None
         try:
             key = self.payment_api_key if (mode == 1) else self.payout_api_key
-            if key and not(key.isascii()):
+            if not(key):
+                raise pyCryptomusAPIException(-6, "Key is empty")
+            if not(key.isascii()):
                 raise pyCryptomusAPIException(-6, "Key contains non-ascii characters")
+            if not(self.merchant_uuid):
+                raise pyCryptomusAPIException(-6, "Merchant UUID is empty")
+            if not(self.merchant_uuid.isascii()):
+                raise pyCryptomusAPIException(-6, "Merchant UUID contains non-ascii characters")
             json_dumps = json.dumps(data)
             # json_dumps = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
             pre_sign = json_dumps if data else ""
             if pre_sign and not(pre_sign.isascii()):
                 raise pyCryptomusAPIException(-6, "Data dump contains non-ascii characters")
             sign = md5(base64.b64encode(pre_sign.encode('ascii')) + key.encode('ascii')).hexdigest()
-            # sign = md5(base64.encodebytes(pre_sign.encode('utf-8')) + key.encode('utf-8')).hexdigest()
             headers = {
                 "merchant": self.merchant_uuid,
                 "sign": sign,
                 "Content-Type": "application/json",
             }
-            # resp = requests.post(ENDPOINT + url, data=data, headers=headers, timeout=self.timeout).json()
             base_resp = requests.post(API_URL + method_url, data=pre_sign, headers=headers, timeout=self.timeout)
             resp = base_resp.json()
         except ValueError as ve:
@@ -87,6 +91,8 @@ class pyCryptomusAPI:
             if self.print_errors:
                 print(message)
             raise pyCryptomusAPIException(code, message)
+        except pyCryptomusAPIException as pe:
+            raise pe
         except Exception as e:
             code = base_resp.status_code if base_resp else -3
             message = "Request unknown exception: {}".format(e)
@@ -327,7 +333,7 @@ class pyCryptomusAPI:
         Collects only results under filters.
         Process as many pages as needed to collect max_results, but not more than max_pages.
 
-        max_results: (Int) Max number of results to collect
+        max_results: (Int, Optional, default=15) Max number of results to collect
         max_pages: (Int, Optional, default=10) Max number of pages to process
         currencies: (List of Strings, Optional) List of accepted currencies. Codes: https://doc.cryptomus.com/reference
         networks: (List of Strings, Optional) List of accepted networks. Codes: https://doc.cryptomus.com/reference
@@ -342,7 +348,7 @@ class pyCryptomusAPI:
         page_number = 0
         cursor = None
         while page_number < max_pages:
-            if page_number > 0: sleep(1)
+            if page_number > 0: sleep(page_delay)
             resp = self.payment_history(cursor = cursor)
 
             if not resp.items:
