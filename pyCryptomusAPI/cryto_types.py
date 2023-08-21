@@ -1,6 +1,8 @@
+import datetime
 import json
 from abc import ABC
 
+CryptomusDateFormat = "%Y-%m-%d %H:%M:%S"
 
 class Dictionaryable(ABC):
     """
@@ -218,19 +220,22 @@ class Invoice(JsonDeserializable):
         self.amount = None
         self.payment_amount = None
         self.payer_amount = None
+        self.discount_percent = None
+        self.discount = None
         self.payer_currency = None
         self.currency = None
-        self.comments = None
+        self.merchant_amount = None
         self.network = None
         self.address = None
         self.from_ = None
         self.txid = None
+        self.payment_status = None
         self.url = None
         self.expired_at = None
-        self.payment_status = None
         self.is_final = None
         self.additional_data = None
-        self.currencies = None
+        self.created_at = None
+        self.updated_at = None
 
     @classmethod
     def de_json(cls, json_dict):
@@ -242,10 +247,16 @@ class Invoice(JsonDeserializable):
             instance.payment_amount = float(instance.payment_amount)
         if instance.payer_amount is not None:
             instance.payer_amount = float(instance.payer_amount)
-        if instance.expired_at is not None:
-            instance.expired_at = int(instance.expired_at)
-        if instance.currencies:
-            instance.currencies = [Currency.de_json(i) for i in instance.currencies]
+        if instance.discount_percent is not None:
+            instance.discount_percent = float(instance.discount_percent)
+        if instance.discount is not None:
+            instance.discount = float(instance.discount)
+        if instance.merchant_amount is not None:
+            instance.merchant_amount = float(instance.merchant_amount)
+        # if instance.created_at is not None:
+        #     instance.created_at = datetime.datetime.strptime(instance.created_at, CryptomusDateFormat)
+        # if instance.updated_at is not None:
+        #     instance.updated_at = datetime.datetime.strptime(instance.updated_at, CryptomusDateFormat)
         return instance
 
 # noinspection PyMethodOverriding
