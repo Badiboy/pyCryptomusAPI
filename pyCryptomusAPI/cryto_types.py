@@ -1,4 +1,3 @@
-import datetime
 import json
 from abc import ABC
 
@@ -130,9 +129,11 @@ class Balance(JsonDeserializable):
             raise ValueError("Not a balance")
         if "merchant" in data:
             for item in data["merchant"]:
+                # noinspection PyUnresolvedReferences
                 instance.merchant.append(BalanceItem.de_json(item))
         if "user" in data:
             for item in data["user"]:
+                # noinspection PyUnresolvedReferences
                 instance.user.append(BalanceItem.de_json(item))
         return instance
 
@@ -302,5 +303,46 @@ class PaymentsHistory(JsonDeserializable):
         data = cls.check_json(json_dict)
         instance = super(PaymentsHistory, cls).de_json(data, process_mode=2)
         instance.items = [Invoice.de_json(i) for i in instance.items]
+        instance.paginate = PaymentPaginate.de_json(instance.paginate)
+        return instance
+
+# noinspection PyMethodOverriding
+class Payout(JsonDeserializable):
+    def __init__(self):
+        self.uuid = None
+        self.amount = None
+        self.currency = None
+        self.network = None
+        self.address = None
+        self.txid = None
+        self.status = None
+        self.is_final = None
+        self.balance = None
+        self.payer_currency = None
+        self.payer_amount = None
+
+    @classmethod
+    def de_json(cls, json_dict):
+        data = cls.check_json(json_dict)
+        instance = super(Payout, cls).de_json(data, process_mode=2)
+        if instance.amount is not None:
+            instance.amount = float(instance.amount)
+        if instance.payer_amount is not None:
+            instance.payer_amount = float(instance.payer_amount)
+        if instance.balance is not None:
+            instance.balance = float(instance.balance)
+        return instance
+
+# noinspection PyMethodOverriding
+class PayoutHistory(JsonDeserializable):
+    def __init__(self):
+        self.items = []
+        self.paginate = PaymentPaginate()
+
+    @classmethod
+    def de_json(cls, json_dict):
+        data = cls.check_json(json_dict)
+        instance = super(PayoutHistory, cls).de_json(data, process_mode=2)
+        instance.items = [Payout.de_json(i) for i in instance.items]
         instance.paginate = PaymentPaginate.de_json(instance.paginate)
         return instance

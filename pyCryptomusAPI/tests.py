@@ -50,6 +50,7 @@ def test_api_functions():
     run_and_print(lambda: client.payment_history())
     run_and_print(lambda: client.payment_history_filtered(is_final=True))
     run_and_print(lambda: client.payout_services())
+    run_and_print(lambda: client.payout_history())
     run_and_print(lambda: client.balance())
 
 test_api_functions()

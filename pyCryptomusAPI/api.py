@@ -41,7 +41,7 @@ class pyCryptomusAPI:
         self.print_errors = print_errors
         self.timeout = timeout
         self.add_request_params = add_request_params
-        if not(self.payment_api_key) and not(self.payout_api_key):
+        if (not self.payment_api_key) and (not self.payout_api_key):
             raise Exception("You must specify at least one API key.")
 
     def __request(self, method_url, mode, **kwargs):
@@ -63,11 +63,11 @@ class pyCryptomusAPI:
         base_resp = None
         try:
             key = self.payment_api_key if (mode == 1) else self.payout_api_key
-            if not(key):
+            if not key:
                 raise pyCryptomusAPIException(-6, "Key is empty")
             if not(key.isascii()):
                 raise pyCryptomusAPIException(-6, "Key contains non-ascii characters")
-            if not(self.merchant_uuid):
+            if not self.merchant_uuid:
                 raise pyCryptomusAPIException(-6, "Merchant UUID is empty")
             if not(self.merchant_uuid.isascii()):
                 raise pyCryptomusAPIException(-6, "Merchant UUID contains non-ascii characters")
@@ -244,7 +244,7 @@ class pyCryptomusAPI:
         method = "wallet/block-address"
         params = {
         }
-        if not(wallet_uuid) and not(order_id):
+        if (not wallet_uuid) and (not order_id):
             raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
         if wallet_uuid:
             params["uuid"] = wallet_uuid
@@ -273,7 +273,7 @@ class pyCryptomusAPI:
         params = {
             "address": address,
         }
-        if not(wallet_uuid) and not(order_id):
+        if (not wallet_uuid) and (not order_id):
             raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
         if wallet_uuid:
             params["uuid"] = wallet_uuid
@@ -298,7 +298,7 @@ class pyCryptomusAPI:
         method = "payment/info"
         params = {
         }
-        if not(invoice_uuid) and not(order_id):
+        if (not invoice_uuid) and (not order_id):
             raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
         if invoice_uuid:
             params["uuid"] = invoice_uuid
@@ -327,7 +327,7 @@ class pyCryptomusAPI:
             "address": address,
             "is_subtract": is_subtract,
         }
-        if not(invoice_uuid) and not(order_id):
+        if (not invoice_uuid) and (not order_id):
             raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
         if invoice_uuid:
             params["uuid"] = invoice_uuid
@@ -439,6 +439,169 @@ class pyCryptomusAPI:
         method = "payment/services"
         resp = self.__request(method, 1).get("result")
         return [Service.de_json(i) for i in resp]
+
+    """
+    Request
+    Query parameters
+    NAME	PARAMETER TYPE	DEFAULT VALUE	DEFINITION
+    amount*	string		Payout amount
+    currency*	string		
+    Currency code for the payout
+    If Currency if fiat, the to_currency parameter is required.
+    order_id*	
+    string
+    min:1
+    max:100
+    alpha_dash
+    Order ID in your system
+    The parameter should be a string consisting of alphabetic characters, numbers, underscores, and dashes. It should not contain any spaces or special characters.
+    The order_id must be unique within the merchant payouts
+    When we find an existing payout with order_id, we return its details, a new payout will not be created.
+    address*	string		The address of the wallet to which the withdrawal will be made
+    is_subtract*	boolean		
+    Defines where the withdrawal fee will be deducted
+    true - from your balance
+    false - from payout amount, the payout amount will be decreased
+    network*	string		
+    Blockchain network code
+    Not required when the currency/to_currency is a cryptocurrency and has only one network, for example BTC
+    url_callback			URL to which webhooks with payout status will be sent
+    to_currency			Cryptocurrency code in which the payout will be made. It is used when the currency parameter is fiat. See examples below
+    course_source	string
+    Available values
+    -
+    Binance
+    -
+    BinanceP2p
+    -
+    Exmo
+    -
+    Kucoin
+    -
+    Garantexio
+    Value from merchant's settings	
+    The service from which the exchange rates are taken for conversion in the invoice.
+    The parameter is applied only if the currency is fiat, otherwise the default value is taken from the merchant's settings.
+    from_currency	string	null	Allows to automatically convert the withdrawal amount and use the from_currency balance. Only USDT is available.
+    priority	
+    string
+    min: 4
+    max: 11
+    Available values
+    -
+    recommended
+    -
+    economy
+    -
+    high
+    -
+    highest
+    recommended	
+    The parameter for selecting the withdrawal priority. The cost of the withdrawal fee depends on the selected parameter.
+    This parameter is applied only in case of using the BTC, ETH, POLYGON, and BSC networks.
+    memo	
+    string
+    min: 1
+    max: 30
+    Additional identifier for TON, used to specify a particular recipient or target
+    * - mandatory parameter
+    """
+
+    def create_payout(self,
+              amount, currency, order_id, address, is_subtract, network,
+              url_callback = None, to_currency = None, course_source = None,
+              from_currency = None, priority = None, memo = None):
+        """
+        Creating a payout
+        https://doc.cryptomus.com/payouts/creating-payout
+        Requires PAYOUT API key
+
+        amount: (String) Payout amount
+        currency: (String) Currency code for the payout. If Currency if fiat, the to_currency parameter is required.
+        order_id: (String[1..100]) Order ID in your system. The parameter should be a string consisting of alphabetic characters, numbers, underscores, and dashes. It should not contain any spaces or special characters. The order_id must be unique within the merchant payouts. When we find an existing payout with order_id, we return its details, a new payout will not be created.
+        address: (String) The address of the wallet to which the withdrawal will be made
+        is_subtract: (Bool) Defines where the withdrawal fee will be deducted. true - from your balance. false - from payout amount, the payout amount will be decreased.
+        network: (String) Blockchain network code.Not required when the currency/to_currency is a cryptocurrency and has only one network, for example BTC
+        url_callback: (String, Optional) URL to which webhooks with payout status will be sent
+        to_currency: (String, Optional) Cryptocurrency code in which the payout will be made. It is used when the currency parameter is fiat.
+        course_source: (String, Optional) The service from which the exchange rates are taken for conversion in the invoice. The parameter is applied only if the currency is fiat, otherwise the default value is taken from the merchant's settings.
+        from_currency: (String, Optional) Allows to automatically convert the withdrawal amount and use the from_currency balance. Only USDT is available.
+        priority: (String, Optional) The parameter for selecting the withdrawal priority. The cost of the withdrawal fee depends on the selected parameter. This parameter is applied only in case of using the BTC, ETH, POLYGON, and BSC networks. Available values: recommended, economy, high, highest
+        memo: (String, Optional) Additional identifier for TON, used to specify a particular recipient or target
+        """
+        method = "payout"
+        params = {
+            "amount": str(amount),
+            "currency": currency,
+            "order_id": str(order_id),
+            "address": address,
+            "is_subtract": is_subtract,
+            "network": network,
+        }
+        if url_callback:
+            params["url_callback"] = url_callback
+        if to_currency:
+            params["to_currency"] = to_currency
+        if course_source:
+            params["course_source"] = course_source
+        if from_currency:
+            params["from_currency"] = from_currency
+        if priority:
+            params["priority"] = priority
+        if memo:
+            params["memo"] = memo
+        resp = self.__request(method, 2, **params).get("result")
+        return Payout.de_json(resp)
+
+    def payout_information(self,
+           payout_uuid = None, order_id = None):
+        """
+        Payout information
+        https://doc.cryptomus.com/payouts/payout-information
+        You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
+        Requires PAYOUT API key
+
+        payout_uuid: (String, Optional if order_id set) Payout UUID
+        order_id: (String[1..128], Optional if wallet_uuid set) Payout order ID
+
+        * To get the payout information you need to pass one of the parameters, if you pass both, the payout will be identified by order_id
+        """
+        method = "payout/info"
+        params = {
+        }
+        if (not payout_uuid) and (not order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        if payout_uuid:
+            params["uuid"] = payout_uuid
+        if order_id:
+            params["order_id"] = order_id
+        resp = self.__request(method, 1, **params).get("result")
+        return Payout.de_json(resp)
+
+    def payout_history(self, date_from = None, date_to = None, cursor = None):
+        """
+        Payout history
+        https://doc.cryptomus.com/payments/payment-history
+        Requires PAYOUT API key
+
+        date_from: (String, Optional) Filtering by creation date, from
+        date_to: (String, Optional) Filtering by creation date, to
+        cursor: (String, Optional) Page cursor (hash)
+        """
+        params = {
+        }
+        if date_from:
+            params["date_from"] = date_from.strftime(CryptomusDateFormat)
+        if date_to:
+            params["date_to"] = date_to.strftime(CryptomusDateFormat)
+        if cursor:
+            params["cursor"] = cursor
+        method = "payment/list"
+        if params:
+            resp = self.__request(method, 1, **params).get("result")
+        else:
+            resp = self.__request(method, 1).get("result")
+        return PayoutHistory.de_json(resp)
 
     def payout_services(self):
         """
