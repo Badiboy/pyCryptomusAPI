@@ -24,7 +24,8 @@ class pyCryptomusAPI:
 
     def __init__(self,
                  merchant_uuid, payment_api_key = None, payout_api_key = None,
-                 print_errors = False, timeout = None, add_request_params = None):
+                 print_errors = False, timeout = None, add_request_params = None,
+                 api_url = API_URL):
         """
         Create the pyCryptomusAPI instance.
 
@@ -34,6 +35,7 @@ class pyCryptomusAPI:
         :param print_errors: (Optional) Print dumps on request errors
         :param timeout: (Optional) Request timeout
         :param add_request_params: (List, Optional) Additional request parameters to pass with API calls
+        :param api_url: (Optional) Use custom API endpoint URL
         """
         self.merchant_uuid = merchant_uuid
         self.payment_api_key = payment_api_key
@@ -41,6 +43,7 @@ class pyCryptomusAPI:
         self.print_errors = print_errors
         self.timeout = timeout
         self.add_request_params = add_request_params
+        self.api_url = api_url
         if (not self.payment_api_key) and (not self.payout_api_key):
             raise Exception("You must specify at least one API key.")
 
@@ -82,7 +85,7 @@ class pyCryptomusAPI:
                 "sign": sign,
                 "Content-Type": "application/json",
             }
-            base_resp = requests.post(API_URL + method_url, data=pre_sign, headers=headers, timeout=self.timeout)
+            base_resp = requests.post(self.api_url + method_url, data=pre_sign, headers=headers, timeout=self.timeout)
             resp = base_resp.json()
         except ValueError as ve:
             code = base_resp.status_code if base_resp else -2
