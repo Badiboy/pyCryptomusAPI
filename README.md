@@ -5,7 +5,8 @@
 # <p align="center">pyCryptomusAPI</p>
 Python implementation of [Cryptomus](https://cryptomus.com) public [API](https://doc.cryptomus.com)
 
-**This library is developing for my personal needs, so it may not fully implement API. However I will continue to maintain it, so if you need some not implemented methods - just open an issue.**
+# 01.07.2025. This library is alive and up to date. No recent commits means it require no fixes!
+If you found a bug or have a feature request, just create an issue!
 
 # Installation
 Installation using pip (a Python package manager):
