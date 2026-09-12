@@ -15,7 +15,7 @@ $ pip install pyCryptomusAPI
 
 # Usage
 Everything is as simple as the [API](https://doc.cryptomus.com/) itself.
-1. Create pyCryptomusAPI instance
+1. Create **pyCryptomusAPI** or **pyHeleketAPI** instance
 2. Access API methods in pythonic notation (e.g. "Creating an invoice" -> create_invoice())
 3. Most methods return result as correspondent class, so you can access data as fields 
 ```
