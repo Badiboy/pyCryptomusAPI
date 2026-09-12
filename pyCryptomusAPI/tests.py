@@ -1,4 +1,5 @@
 import base64
+import datetime
 from hashlib import md5
 import json
 import unittest
@@ -105,9 +106,14 @@ class TestPyCryptomusAPI(unittest.TestCase):
     def test_payment_history_services_and_balance(self, post):
         post.return_value = self.history_response()
 
-        history = self.client.payment_history(cursor="next-page")
+        history = self.client.payment_history(
+            "2026-09-01 00:00:00", "2026-09-02 23:59:59", cursor="next-page")
         self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v1/payment/list")
         self.assertEqual(post.call_args.kwargs["params"], {"cursor": "next-page"})
+        self.assertEqual(json.loads(post.call_args.kwargs["data"]), {
+            "date_from": "2026-09-01 00:00:00",
+            "date_to": "2026-09-02 23:59:59",
+        })
         self.assertEqual(history.items, [])
         self.assertEqual(self.client.payment_history_filtered(max_pages=1).items, [])
 
@@ -160,9 +166,14 @@ class TestPyCryptomusAPI(unittest.TestCase):
         self.assertEqual(payout.uuid, "payout-id")
 
         post.return_value = self.history_response()
-        history = self.client.payout_history(cursor="next-page")
+        history = self.client.payout_history(
+            datetime.datetime(2026, 9, 1), datetime.date(2026, 9, 2), cursor="next-page")
         self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v1/payout/list")
         self.assertEqual(post.call_args.kwargs["params"], {"cursor": "next-page"})
+        self.assertEqual(json.loads(post.call_args.kwargs["data"]), {
+            "date_from": "2026-09-01 00:00:00",
+            "date_to": "2026-09-02 00:00:00",
+        })
         self.assertEqual(history.items, [])
 
         post.return_value = MockResponse({

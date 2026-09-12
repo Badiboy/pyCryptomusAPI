@@ -430,9 +430,9 @@ class pyCryptomusAPI:
         params = {
         }
         if date_from:
-            params["date_from"] = date_from.strftime(CryptomusDateFormat)
+            params["date_from"] = date_from if isinstance(date_from, str) else date_from.strftime(CryptomusDateFormat)
         if date_to:
-            params["date_to"] = date_to.strftime(CryptomusDateFormat)
+            params["date_to"] = date_to if isinstance(date_to, str) else date_to.strftime(CryptomusDateFormat)
         method = "v1/payment/list"
         query_params = {"cursor": cursor} if cursor else None
         if params:
@@ -623,9 +623,9 @@ class pyCryptomusAPI:
         params = {
         }
         if date_from:
-            params["date_from"] = date_from.strftime(CryptomusDateFormat)
+            params["date_from"] = date_from if isinstance(date_from, str) else date_from.strftime(CryptomusDateFormat)
         if date_to:
-            params["date_to"] = date_to.strftime(CryptomusDateFormat)
+            params["date_to"] = date_to if isinstance(date_to, str) else date_to.strftime(CryptomusDateFormat)
         method = "v1/payout/list"
         query_params = {"cursor": cursor} if cursor else None
         if params:
