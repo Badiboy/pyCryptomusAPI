@@ -50,11 +50,19 @@ class TestPyCryptomusAPI(unittest.TestCase):
         post.return_value = self.invoice_response()
 
         invoice = self.client.create_invoice(
-            1, "USDT", "invoice-order", network="tron", additional_data="test")
+            "1.25", "USDT", "invoice-order", network="tron", additional_data="test",
+            accuracy_payment_percent=1.25)
 
         self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v1/payment")
+        self.assertEqual(json.loads(post.call_args.kwargs["data"])["amount"], "1.25")
+        self.assertEqual(json.loads(post.call_args.kwargs["data"])["accuracy_payment_percent"], "1.25")
         self.assertEqual(json.loads(post.call_args.kwargs["data"])["network"], "tron")
         self.assertEqual(invoice.uuid, "invoice-id")
+
+        post.return_value = self.invoice_response()
+        self.client.create_invoice(1.25, "USDT", "float-invoice-order", accuracy_payment_percent=1)
+        self.assertEqual(json.loads(post.call_args.kwargs["data"])["amount"], "1.25")
+        self.assertEqual(json.loads(post.call_args.kwargs["data"])["accuracy_payment_percent"], "1")
 
     @patch.object(api_module.requests, "post")
     def test_create_wallet_and_qr_codes(self, post):

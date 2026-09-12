@@ -30,11 +30,11 @@ class pyCryptomusAPI:
         Create the pyCryptomusAPI instance.
 
         :param merchant_uuid: The merchant's uuid, which you can find in the merchant's personal account in the settings section.
-        :param payment_api_key: API key for processing payments
-        :param payout_api_key: API key for accepting payment and making payouts
+        :param payment_api_key: API key for accepting payments
+        :param payout_api_key: API key for making payouts
         :param print_errors: (Optional) Print dumps on request errors
         :param timeout: (Optional) Request timeout
-        :param add_request_params: (List, Optional) Additional request parameters to pass with API calls
+        :param add_request_params: (Dict, Optional) Additional request body parameters to pass with API calls
         :param api_url: (Optional) Use custom API endpoint URL
         """
         self.merchant_uuid = merchant_uuid
@@ -140,28 +140,28 @@ class pyCryptomusAPI:
            discount_percent = None, is_refresh = None):
         """
         Creating an invoice
-        https://doc.cryptomus.com/payments/creating-invoice
+        https://doc.cryptomus.com/merchant-api/payments/creating-invoice
         Requires PAYMENT API key
 
-        amount: (Float) Amount to be paid. If there are pennies in the amount, then send them with a separator '.' Example: 10.28
+        amount: (String or Float) Amount to be paid. If there are pennies in the amount, then send them with a separator '.' Example: 10.28
         currency: (String) Currency code (https://doc.cryptomus.com/reference)
         order_id: (String[1..128]) Order ID in your system. The parameter should be a string consisting of alphabetic characters, numbers, underscores, and dashes. It should not contain any spaces or special characters.
         network: (String, Optional) Blockchain network code (https://doc.cryptomus.com/reference)
         url_return: (String[6..255], Optional) Before paying, the user can click on the button on the payment form and return to the store page at this URL.
         url_success: (String[6..255], Optional) After successful payment, the user can click on the button on the payment form and return to this URL.
         url_callback: (String[6..255], Optional) Url to which webhooks with payment status will be sent.
-        is_payment_multiple: (Bool, Optional) Whether the user is allowed to pay the remaining amount. This is useful when the user has not paid the entire amount of the invoice for one transaction, and you want to allow him to pay up to the full amount. If you disable this feature, the invoice will finalize after receiving the first payment and you will receive funds to your balance.
-        lifetime: (Int[300..43200], Optional) The lifespan of the issued invoice (?in seconds?)
+        is_payment_multiple: (Bool, Optional, default=True) Whether the user is allowed to pay the remaining amount. This is useful when the user has not paid the entire amount of the invoice for one transaction, and you want to allow him to pay up to the full amount. If you disable this feature, the invoice will finalize after receiving the first payment and you will receive funds to your balance.
+        lifetime: (Int[300..43200], Optional, default=3600) The lifespan of the issued invoice (in seconds)
         to_currency: (String, Optional) The parameter is used to specify the target currency for converting the invoice amount. When creating an invoice, you provide an amount and currency, and the API will convert that amount to the equivalent value in the to_currency. For example, to create an invoice for 20 USD in bitcoin: amount: 20, currency: USD, to_currency: BTC. The API will convert 20 USD amount to its equivalent in BTC based on the current exchange rate and the user will pay in BTC.
-        subtract: (Int[0..100], Optional) Percentage of the payment commission charged to the client. If you have a rate of 1%, then if you create an invoice for 100 USDT with subtract = 100 (the client pays 100% commission), the client will have to pay 101 USDT.
-        accuracy_payment_percent: (Float[0..5], Optional) Acceptable inaccuracy in payment. For example, if you pass the value 5, the invoice will be marked as Paid even if the client has paid only 95% of the amount. The actual payment amount will be credited to the balance.
-        additional_data: (?String?, Optional) Additional information for you (not shown to the client).
+        subtract: (Int[0..100], Optional, default=0) Percentage of the payment commission charged to the client. If you have a rate of 1%, then if you create an invoice for 100 USDT with subtract = 100 (the client pays 100% commission), the client will have to pay 101 USDT.
+        accuracy_payment_percent: (Numeric[0..5], including Float, Optional, default=0) Acceptable inaccuracy in payment. For example, if you pass the value 5, the invoice will be marked as Paid even if the client has paid only 95% of the amount. The actual payment amount will be credited to the balance.
+        additional_data: (String[0..255], Optional) Additional information for you (not shown to the client).
         currencies: (List[Currency][1..255], Optional) List of allowed currencies for payment. This is useful if you want to limit the list of coins that your customers can use to pay invoices.
         except_currencies: (List[Currency], Optional) List of excluded currencies for payment.
-        course_source: (String[4..20], Optional) The service from which the exchange rates are taken for conversion in the invoice. If not passed, Cryptomus exchange rates are used. Available values: https://doc.cryptomus.com/payments/creating-invoice
+        course_source: (String[4..20], Optional) The service from which the exchange rates are taken for conversion in the invoice. If not passed, Cryptomus exchange rates are used. Available values: Binance, BinanceP2P, Exmo, Kucoin
         from_referral_code: (String, Optional) The merchant who makes the request connects to a referrer by code. For example, you are an application that generates invoices via the Cryptomus API and your customers are other stores. They enter their api key and merchant id in your application, and you send requests with their credentials and passing your referral code. Thus, your clients become referrals on your Cryptomus account and you will receive income from their turnover.
         discount_percent: (Int[-99..100], Optional) Positive numbers: allows you to set a discount. To set a 5% discount for the payment, you should pass a value: 5. Negative numbers: allows you to set custom additional commission. To set an additional commission of 10% for the payment, you should pass a value: -10.
-        is_refresh: (Bool, Optional) Using this parameter, you can update the lifetime and get a new address for the invoice if the lifetime has expired. To do that, you need to pass all required parameters, and the invoice with passed order_id will be refreshed.
+        is_refresh: (Bool, Optional, default=False) Using this parameter, you can update the lifetime and get a new address for the invoice if the lifetime has expired. To do that, you need to pass all required parameters, and the invoice with passed order_id will be refreshed.
 
          * The order_id must be unique within the merchant invoices/static wallets/recurrence payments
          * When we find an existing invoice with order_id, we return its details, a new invoice will not be created.
@@ -171,7 +171,7 @@ class pyCryptomusAPI:
         """
         method = "v1/payment"
         params = {
-            "amount": str(amount),
+            "amount": amount if isinstance(amount, str) else str(amount),
             "currency": currency,
             "order_id": str(order_id),
         }
@@ -192,7 +192,7 @@ class pyCryptomusAPI:
         if subtract is not None:
             params["subtract"] = str(subtract)
         if accuracy_payment_percent is not None:
-            params["accuracy_payment_percent"] = str(accuracy_payment_percent)
+            params["accuracy_payment_percent"] = accuracy_payment_percent if isinstance(accuracy_payment_percent, str) else str(accuracy_payment_percent)
         if additional_data:
             params["additional_data"] = additional_data
         if currencies:
@@ -214,7 +214,7 @@ class pyCryptomusAPI:
            network, currency, order_id, url_callback = None, from_referral_code = None):
         """
         Creating a Static wallet
-        https://doc.cryptomus.com/payments/creating-static
+        https://doc.cryptomus.com/merchant-api/payments/creating-static
         Requires PAYMENT API key
 
         network: (String) Blockchain network code (https://doc.cryptomus.com/reference)
@@ -271,7 +271,7 @@ class pyCryptomusAPI:
            wallet_uuid = None, order_id = None, is_force_refund = None):
         """
         Block static wallet
-        https://doc.cryptomus.com/payments/block-wallet
+        https://doc.cryptomus.com/merchant-api/payments/block-wallet
         You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         Requires PAYMENT API key
 
@@ -299,7 +299,7 @@ class pyCryptomusAPI:
            address, wallet_uuid = None, order_id = None):
         """
         Refund payments on blocked address
-        https://doc.cryptomus.com/payments/refundblocked
+        https://doc.cryptomus.com/merchant-api/payments/refundblocked
         You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         Requires PAYMENT API key
 
@@ -326,12 +326,12 @@ class pyCryptomusAPI:
            invoice_uuid = None, order_id = None):
         """
         Payment information
-        https://doc.cryptomus.com/payments/payment-information
+        https://doc.cryptomus.com/merchant-api/payments/payment-information
         You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         Requires PAYMENT API key
 
         invoice_uuid: (String, Optional if order_id set) Invoice UUID
-        order_id: (String[1..128], Optional if wallet_uuid set) Invoice order ID
+        order_id: (String[1..128], Optional if invoice_uuid set) Invoice order ID
 
         * To get the invoice status you need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         """
@@ -351,7 +351,7 @@ class pyCryptomusAPI:
            address, is_subtract, invoice_uuid = None, order_id = None):
         """
         Refund
-        https://doc.cryptomus.com/payments/refund
+        https://doc.cryptomus.com/merchant-api/payments/refund
         You need to pass one of the required parameters, if you pass both, the account will be identified by invoice_uuid
         Requires PAYMENT API key
 
@@ -420,7 +420,7 @@ class pyCryptomusAPI:
     def payment_history(self, date_from = None, date_to = None, cursor = None):
         """
         Payment history
-        https://doc.cryptomus.com/payments/payment-history
+        https://doc.cryptomus.com/merchant-api/payments/payment-history
         Requires PAYMENT API key
 
         date_from: (String, Optional) Filtering by creation date, from
@@ -469,7 +469,7 @@ class pyCryptomusAPI:
         Payment history (advanced mode)
 
         Based on: payment_history
-        https://doc.cryptomus.com/payments/payment-history
+        https://doc.cryptomus.com/merchant-api/payments/payment-history
         Requires PAYMENT API key
 
         Collects only results under filters.
@@ -482,7 +482,7 @@ class pyCryptomusAPI:
         currencies: (List of Strings, Optional) List of accepted currencies. Codes: https://doc.cryptomus.com/reference
         networks: (List of Strings, Optional) List of accepted networks. Codes: https://doc.cryptomus.com/reference
         addresses: (List of Strings, Optional) List of accepted addresses
-        statuses: (List of Strings, Optional) List of accepted statuses. Codes: https://doc.cryptomus.com/payments/payment-statuses
+        statuses: (List of Strings, Optional) List of accepted statuses. Codes: https://doc.cryptomus.com/merchant-api/payments/payment-statuses
         is_final: (Bool, Optional) If True, only final payments will be collected, if False - only non-final
         page_delay: (Int, Optional, default=1) Delay between pages (in seconds)
         """
@@ -531,7 +531,7 @@ class pyCryptomusAPI:
     def payment_services(self):
         """
         Get collection of all available payment services
-        https://doc.cryptomus.com/payments/list-of-services
+        https://doc.cryptomus.com/merchant-api/payments/list-of-services
         Requires PAYMENT API key
         """
         method = "v1/payment/services"
@@ -544,7 +544,7 @@ class pyCryptomusAPI:
               from_currency = None, priority = None, memo = None):
         """
         Creating a payout
-        https://doc.cryptomus.com/payouts/creating-payout
+        https://doc.cryptomus.com/merchant-api/payouts/creating-payout
         Requires PAYOUT API key
 
         amount: (String) Payout amount
@@ -589,12 +589,12 @@ class pyCryptomusAPI:
            payout_uuid = None, order_id = None):
         """
         Payout information
-        https://doc.cryptomus.com/payouts/payout-information
+        https://doc.cryptomus.com/merchant-api/payouts/payout-information
         You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         Requires PAYOUT API key
 
         payout_uuid: (String, Optional if order_id set) Payout UUID
-        order_id: (String[1..128], Optional if wallet_uuid set) Payout order ID
+        order_id: (String[1..128], Optional if payout_uuid set) Payout order ID
 
         * To get the payout information you need to pass one of the parameters, if you pass both, the payout will be identified by order_id
         """
@@ -613,7 +613,7 @@ class pyCryptomusAPI:
     def payout_history(self, date_from = None, date_to = None, cursor = None):
         """
         Payout history
-        https://doc.cryptomus.com/payments/payment-history
+        https://doc.cryptomus.com/merchant-api/payouts/payout-history
         Requires PAYOUT API key
 
         date_from: (String, Optional) Filtering by creation date, from
@@ -637,8 +637,8 @@ class pyCryptomusAPI:
     def payout_services(self):
         """
         Get collection of all available payout services
-        https://doc.cryptomus.com/payouts/list-of-services
-        Requires PAYMOUT API key
+        https://doc.cryptomus.com/merchant-api/payouts/list-of-services
+        Requires PAYOUT API key
         """
         method = "v1/payout/services"
         resp = self.__request(method, 2).get("result")
