@@ -780,3 +780,16 @@ class pyCryptomusAPI:
         method = "v1/balance"
         resp = self.__request(method, 1).get("result")
         return Balance.de_json(resp[0])
+
+class pyHeleketAPI(pyCryptomusAPI):
+    """
+    Heleket API client, which is identical to Cryptomus API client/
+    It uses Heleket API endpoint and requires HELEKET API key.
+    https://doc.heleket.com/
+    """
+    def __init__(self,
+                 merchant_uuid, payment_api_key = None, payout_api_key = None,
+                 print_errors = False, timeout = None, add_request_params = None,
+                 api_url = HELEKET_API_URL):
+        super().__init__(merchant_uuid, payment_api_key=payment_api_key, payout_api_key=payout_api_key,
+                         print_errors=print_errors, timeout=timeout, add_request_params=add_request_params, api_url=api_url)
