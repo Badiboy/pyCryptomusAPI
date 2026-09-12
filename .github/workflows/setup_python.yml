@@ -20,17 +20,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.8','3.9', '3.10', '3.11', 'pypy-3.8', 'pypy-3.9', 'pypy-3.10']
+        python-version: [ '3.10', '3.11', '3.12', '3.13', '3.14', 'pypy-3.11']
     name: ${{ matrix.python-version }} and tests
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
       - run: |
-          pip3 install -r requirements.txt
-          pip3 install pytest
-          python setup.py install
-          pytest pyCryptomusAPI/tests.py
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade build pytest
+          python -m build
+          python -m pip install dist/*.whl
+          python -m pytest pyCryptomusAPI/tests.py

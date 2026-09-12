@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyCryptomusAPI"
+dynamic = ["version"]
+description = "Python implementation of Cryptomus (https://cryptomus.com) public API"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "Badiboy"},
+]
+keywords = ["Crypto", "Pay", "API", "Cryptomus", "Heleket"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "requests",
+]
+
+[project.urls]
+Homepage = "https://github.com/Badiboy/pyCryptomusAPI"
+Repository = "https://github.com/Badiboy/pyCryptomusAPI"
+
+[tool.setuptools]
+packages = ["pyCryptomusAPI"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pyCryptomusAPI.version.__version__"}
