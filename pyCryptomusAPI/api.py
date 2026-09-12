@@ -5,7 +5,8 @@ import requests
 
 from .cryto_types import *
 
-API_URL = "https://api.cryptomus.com/v1/"
+CRYPTOMUS_API_URL = "https://api.cryptomus.com/"
+HELEKET_API_URL = "https://api.heleket.com/"
 
 # noinspection PyPep8Naming
 class pyCryptomusAPIException(Exception):
@@ -16,7 +17,6 @@ class pyCryptomusAPIException(Exception):
         super().__init__(self.message)
 
 
-# noinspection PyPep8Naming
 class pyCryptomusAPI:
     """
     Cryptomus API Client
@@ -25,7 +25,7 @@ class pyCryptomusAPI:
     def __init__(self,
                  merchant_uuid, payment_api_key = None, payout_api_key = None,
                  print_errors = False, timeout = None, add_request_params = None,
-                 api_url = API_URL):
+                 api_url = CRYPTOMUS_API_URL):
         """
         Create the pyCryptomusAPI instance.
 
@@ -43,16 +43,17 @@ class pyCryptomusAPI:
         self.print_errors = print_errors
         self.timeout = timeout
         self.add_request_params = add_request_params
-        self.api_url = api_url
+        self.api_url = api_url.rstrip("/") + "/"
         if (not self.payment_api_key) and (not self.payout_api_key):
             raise Exception("You must specify at least one API key.")
 
-    def __request(self, method_url, mode, **kwargs):
+    def __request(self, method_url, mode, query_params = None, **kwargs):
         """
         Send request to API
 
         :param method_url: (String) API method url (part)
         :param mode: (Int) Method mode (1: payment, 2: payout)
+        :param query_params: (Dict, Optional) Query string parameters
         :param kwargs: request data
         """
         if kwargs:
@@ -85,7 +86,9 @@ class pyCryptomusAPI:
                 "sign": sign,
                 "Content-Type": "application/json",
             }
-            base_resp = requests.post(self.api_url + method_url, data=pre_sign, headers=headers, timeout=self.timeout)
+            request_url = self.api_url + method_url
+            base_resp = requests.post(request_url, data=pre_sign, headers=headers,
+                                      params=query_params, timeout=self.timeout)
             resp = base_resp.json()
         except ValueError as ve:
             code = base_resp.status_code if base_resp else -2
@@ -107,7 +110,7 @@ class pyCryptomusAPI:
             if self.print_errors:
                 print(message)
             raise pyCryptomusAPIException(code, message)
-        elif not resp.get("result"):
+        elif resp.get("state") not in (None, 0):
             code = base_resp.status_code if base_resp else -5
             if resp.get("message"):
                 message = resp["message"]
@@ -115,6 +118,12 @@ class pyCryptomusAPI:
                 message = resp["errors"]
             else:
                 message = "No error info provided"
+            if self.print_errors:
+                print("Response: {}".format(resp))
+            raise pyCryptomusAPIException(code, message)
+        elif "result" not in resp:
+            code = base_resp.status_code if base_resp else -5
+            message = resp.get("message", "No result provided")
             if self.print_errors:
                 print("Response: {}".format(resp))
             raise pyCryptomusAPIException(code, message)
@@ -160,7 +169,7 @@ class pyCryptomusAPI:
          * The discount percentage when creating an invoice is taken into account only if the invoice has a specific cryptocurrency.
          * Only address, payment_status and expired_at are changed. No other fields are changed, regardless of the parameters passed.
         """
-        method = "payment"
+        method = "v1/payment"
         params = {
             "amount": str(amount),
             "currency": currency,
@@ -217,7 +226,7 @@ class pyCryptomusAPI:
         * The order_id must be unique within the merchant invoices/static wallets/recurrence payments
         * When we find an existing invoice with order_id, we return its details, a new invoice will not be created.
         """
-        method = "wallet"
+        method = "v1/wallet"
         params = {
             "network": network,
             "currency": currency,
@@ -229,6 +238,34 @@ class pyCryptomusAPI:
             params["from_referral_code"] = from_referral_code
         resp = self.__request(method, 1, **params).get("result")
         return Wallet.de_json(resp)
+
+    def payment_qr_code(self, invoice_uuid):
+        """
+        Generate a QR-code for an invoice address.
+        https://doc.cryptomus.com/merchant-api/payments/qr-code-pay-form
+        Requires PAYMENT API key
+
+        invoice_uuid: (String) Invoice UUID
+
+        :return: (String) Base64 encoded QR-code image with data URI prefix
+        """
+        method = "v1/payment/qr"
+        resp = self.__request(method, 1, merchant_payment_uuid=invoice_uuid).get("result")
+        return resp.get("image")
+
+    def wallet_qr_code(self, wallet_uuid):
+        """
+        Generate a QR-code for a static wallet address.
+        https://doc.cryptomus.com/merchant-api/payments/qr-code-pay-form
+        Requires PAYMENT API key
+
+        wallet_uuid: (String) Static wallet UUID
+
+        :return: (String) Base64 encoded QR-code image with data URI prefix
+        """
+        method = "v1/wallet/qr"
+        resp = self.__request(method, 1, wallet_address_uuid=wallet_uuid).get("result")
+        return resp.get("image")
 
     def block_wallet(self,
            wallet_uuid = None, order_id = None, is_force_refund = None):
@@ -244,7 +281,7 @@ class pyCryptomusAPI:
 
         * You need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         """
-        method = "wallet/block-address"
+        method = "v1/wallet/block-address"
         params = {
         }
         if (not wallet_uuid) and (not order_id):
@@ -272,7 +309,7 @@ class pyCryptomusAPI:
 
         * To refund payments you need to pass either uuid or order_id, if you pass both, the static wallet will be identified by uuid
         """
-        method = "wallet/blocked-address-refund"
+        method = "v1/wallet/blocked-address-refund"
         params = {
             "address": address,
         }
@@ -298,7 +335,7 @@ class pyCryptomusAPI:
 
         * To get the invoice status you need to pass one of the required parameters, if you pass both, the account will be identified by order_id
         """
-        method = "payment/info"
+        method = "v1/payment/info"
         params = {
         }
         if (not invoice_uuid) and (not order_id):
@@ -325,7 +362,7 @@ class pyCryptomusAPI:
 
         * Invoice is identified by order_id or uuid, if you pass both, the account will be identified by uuid
         """
-        method = "payment/refund"
+        method = "v1/payment/refund"
         params = {
             "address": address,
             "is_subtract": is_subtract,
@@ -336,8 +373,49 @@ class pyCryptomusAPI:
             params["uuid"] = invoice_uuid
         if order_id:
             params["order_id"] = order_id
-        resp = self.__request(method, 1, **params).get("result")
-        return Invoice.de_json(resp)
+        return self.__request(method, 1, **params).get("result")
+
+    def resend_payment_webhook(self, invoice_uuid = None, order_id = None):
+        """
+        Resend payment webhook.
+        https://doc.cryptomus.com/merchant-api/payments/resend-webhook
+        Requires PAYMENT API key
+
+        invoice_uuid: (String, Optional if order_id set) Invoice UUID
+        order_id: (String, Optional if invoice_uuid set) Invoice order ID
+
+        * The url_callback must have been specified when the invoice was created.
+        """
+        if (not invoice_uuid) and (not order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        params = {}
+        if invoice_uuid:
+            params["uuid"] = invoice_uuid
+        if order_id:
+            params["order_id"] = order_id
+        return self.__request("v2/payment/resend", 1, **params).get("result")
+
+    def test_payment_webhook(self, url_callback, currency, network,
+                             invoice_uuid = None, order_id = None, status = None):
+        """
+        Request Cryptomus to send a test payment webhook.
+        https://doc.cryptomus.com/merchant-api/payments/testing-webhook
+        Requires PAYMENT API key
+
+        This method does not receive or validate a webhook.
+        """
+        params = {
+            "url_callback": url_callback,
+            "currency": currency,
+            "network": network,
+        }
+        if invoice_uuid:
+            params["uuid"] = invoice_uuid
+        if order_id:
+            params["order_id"] = order_id
+        if status:
+            params["status"] = status
+        return self.__request("v1/test-webhook/payment", 1, **params).get("result")
 
     def payment_history(self, date_from = None, date_to = None, cursor = None):
         """
@@ -355,14 +433,31 @@ class pyCryptomusAPI:
             params["date_from"] = date_from.strftime(CryptomusDateFormat)
         if date_to:
             params["date_to"] = date_to.strftime(CryptomusDateFormat)
-        if cursor:
-            params["cursor"] = cursor
-        method = "payment/list"
+        method = "v1/payment/list"
+        query_params = {"cursor": cursor} if cursor else None
         if params:
-            resp = self.__request(method, 1, **params).get("result")
+            resp = self.__request(method, 1, query_params=query_params, **params).get("result")
         else:
-            resp = self.__request(method, 1).get("result")
+            resp = self.__request(method, 1, query_params=query_params).get("result")
         return PaymentsHistory.de_json(resp)
+
+    def mark_payment_as_paid(self, invoice_uuid = None, order_id = None):
+        """
+        Request asynchronous processing to mark an underpaid invoice as paid.
+        https://doc.cryptomus.com/merchant-api/payments/creating-invoice
+        Requires PAYMENT API key
+
+        invoice_uuid: (String, Optional if order_id set) Invoice UUID
+        order_id: (String, Optional if invoice_uuid set) Invoice order ID
+        """
+        if (not invoice_uuid) and (not order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        params = {}
+        if invoice_uuid:
+            params["uuid"] = invoice_uuid
+        if order_id:
+            params["order_id"] = order_id
+        return self.__request("v1/payment/mark-as-paid", 1, **params).get("result")
 
     def payment_history_filtered(
             self,
@@ -439,12 +534,12 @@ class pyCryptomusAPI:
         https://doc.cryptomus.com/payments/list-of-services
         Requires PAYMENT API key
         """
-        method = "payment/services"
+        method = "v1/payment/services"
         resp = self.__request(method, 1).get("result")
         return [Service.de_json(i) for i in resp]
 
     def create_payout(self,
-              amount, currency, order_id, address, is_subtract, network,
+              amount, currency, order_id, address, is_subtract, network = None,
               url_callback = None, to_currency = None, course_source = None,
               from_currency = None, priority = None, memo = None):
         """
@@ -457,7 +552,7 @@ class pyCryptomusAPI:
         order_id: (String[1..100]) Order ID in your system. The parameter should be a string consisting of alphabetic characters, numbers, underscores, and dashes. It should not contain any spaces or special characters. The order_id must be unique within the merchant payouts. When we find an existing payout with order_id, we return its details, a new payout will not be created.
         address: (String) The address of the wallet to which the withdrawal will be made
         is_subtract: (Bool) Defines where the withdrawal fee will be deducted. true - from your balance. false - from payout amount, the payout amount will be decreased.
-        network: (String) Blockchain network code.Not required when the currency/to_currency is a cryptocurrency and has only one network, for example BTC
+        network: (String) Blockchain network code. Not required when the currency/to_currency is a cryptocurrency and has only one network, for example BTC
         url_callback: (String, Optional) URL to which webhooks with payout status will be sent
         to_currency: (String, Optional) Cryptocurrency code in which the payout will be made. It is used when the currency parameter is fiat.
         course_source: (String, Optional) The service from which the exchange rates are taken for conversion in the invoice. The parameter is applied only if the currency is fiat, otherwise the default value is taken from the merchant's settings.
@@ -465,15 +560,16 @@ class pyCryptomusAPI:
         priority: (String, Optional) The parameter for selecting the withdrawal priority. The cost of the withdrawal fee depends on the selected parameter. This parameter is applied only in case of using the BTC, ETH, POLYGON, and BSC networks. Available values: recommended, economy, high, highest
         memo: (String, Optional) Additional identifier for TON, used to specify a particular recipient or target
         """
-        method = "payout"
+        method = "v1/payout"
         params = {
             "amount": str(amount),
             "currency": currency,
             "order_id": str(order_id),
             "address": address,
             "is_subtract": is_subtract,
-            "network": network,
         }
+        if network:
+            params["network"] = network
         if url_callback:
             params["url_callback"] = url_callback
         if to_currency:
@@ -502,7 +598,7 @@ class pyCryptomusAPI:
 
         * To get the payout information you need to pass one of the parameters, if you pass both, the payout will be identified by order_id
         """
-        method = "payout/info"
+        method = "v1/payout/info"
         params = {
         }
         if (not payout_uuid) and (not order_id):
@@ -511,7 +607,7 @@ class pyCryptomusAPI:
             params["uuid"] = payout_uuid
         if order_id:
             params["order_id"] = order_id
-        resp = self.__request(method, 1, **params).get("result")
+        resp = self.__request(method, 2, **params).get("result")
         return Payout.de_json(resp)
 
     def payout_history(self, date_from = None, date_to = None, cursor = None):
@@ -530,13 +626,12 @@ class pyCryptomusAPI:
             params["date_from"] = date_from.strftime(CryptomusDateFormat)
         if date_to:
             params["date_to"] = date_to.strftime(CryptomusDateFormat)
-        if cursor:
-            params["cursor"] = cursor
-        method = "payment/list"
+        method = "v1/payout/list"
+        query_params = {"cursor": cursor} if cursor else None
         if params:
-            resp = self.__request(method, 1, **params).get("result")
+            resp = self.__request(method, 2, query_params=query_params, **params).get("result")
         else:
-            resp = self.__request(method, 1).get("result")
+            resp = self.__request(method, 2, query_params=query_params).get("result")
         return PayoutHistory.de_json(resp)
 
     def payout_services(self):
@@ -545,9 +640,136 @@ class pyCryptomusAPI:
         https://doc.cryptomus.com/payouts/list-of-services
         Requires PAYMOUT API key
         """
-        method = "payout/services"
+        method = "v1/payout/services"
         resp = self.__request(method, 2).get("result")
         return [Service.de_json(i) for i in resp]
+
+    def transfer_to_personal(self, amount, currency):
+        """
+        Transfer funds from business wallet to personal wallet.
+        https://doc.cryptomus.com/merchant-api/payouts/transfer-to-personal
+        Requires PAYOUT API key
+
+        amount: (String) Amount to transfer
+        currency: (String) Cryptocurrency code
+        """
+        return self.__request("v1/transfer/to-personal", 2,
+                              amount=str(amount), currency=currency).get("result")
+
+    def transfer_to_business(self, amount, currency):
+        """
+        Transfer funds from personal wallet to business wallet.
+        https://doc.cryptomus.com/merchant-api/payouts/transfer-to-business
+        Requires PAYOUT API key
+
+        amount: (String) Amount to transfer
+        currency: (String) Cryptocurrency code
+        """
+        return self.__request("v1/transfer/to-business", 2,
+                              amount=str(amount), currency=currency).get("result")
+
+    def test_payout_webhook(self, url_callback, currency, network, status = "paid",
+                            payout_uuid = None, order_id = None):
+        """
+        Request Cryptomus to send a test payout webhook.
+        https://doc.cryptomus.com/merchant-api/payments/testing-webhook
+        Requires PAYOUT API key
+
+        This method does not receive or validate a webhook.
+        """
+        params = {
+            "url_callback": url_callback,
+            "currency": currency,
+            "network": network,
+            "status": status,
+        }
+        if payout_uuid:
+            params["uuid"] = payout_uuid
+        if order_id:
+            params["order_id"] = order_id
+        return self.__request("v1/test-webhook/payout", 2, **params).get("result")
+
+    def create_recurrence(self, amount, currency, name, period, to_currency = None,
+                          order_id = None, url_callback = None, discount_days = None,
+                          discount_amount = None, additional_data = None):
+        """
+        Create a recurring payment.
+        https://doc.cryptomus.com/merchant-api/recurring/creating
+        Requires PAYMENT API key
+
+        amount: (String) Recurring payment amount
+        currency: (String) Currency code
+        name: (String[3..60]) Recurring payment name
+        period: (String) weekly, monthly or three_month
+        to_currency: (String, Optional) Cryptocurrency code for accepting payments
+        order_id: (String[1..100], Optional) Order ID in your system
+        url_callback: (String, Optional) URL for payment status notifications
+        discount_days: (Int[1..365], Optional) Discount period in days
+        discount_amount: (String, Optional) Amount for the discount period
+        additional_data: (String, Optional) Additional recurring payment details
+        """
+        params = {
+            "amount": str(amount),
+            "currency": currency,
+            "name": name,
+            "period": period,
+        }
+        if to_currency:
+            params["to_currency"] = to_currency
+        if order_id:
+            params["order_id"] = str(order_id)
+        if url_callback:
+            params["url_callback"] = url_callback
+        if discount_days is not None:
+            params["discount_days"] = discount_days
+        if discount_amount is not None:
+            params["discount_amount"] = str(discount_amount)
+        if additional_data:
+            params["additional_data"] = additional_data
+        resp = self.__request("v1/recurrence/create", 1, **params).get("result")
+        return Recurrence.de_json(resp)
+
+    def recurrence_information(self, recurrence_uuid = None, order_id = None):
+        """
+        Get recurring payment information.
+        https://doc.cryptomus.com/merchant-api/recurring/info
+        Requires PAYMENT API key
+        """
+        if (not recurrence_uuid) and (not order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        params = {}
+        if recurrence_uuid:
+            params["uuid"] = recurrence_uuid
+        if order_id:
+            params["order_id"] = order_id
+        resp = self.__request("v1/recurrence/info", 1, **params).get("result")
+        return Recurrence.de_json(resp)
+
+    def recurrence_history(self, cursor = None):
+        """
+        Get recurring payments list.
+        https://doc.cryptomus.com/merchant-api/recurring/list
+        Requires PAYMENT API key
+        """
+        query_params = {"cursor": cursor} if cursor else None
+        resp = self.__request("v1/recurrence/list", 1, query_params=query_params).get("result")
+        return RecurrencesHistory.de_json(resp)
+
+    def cancel_recurrence(self, recurrence_uuid = None, order_id = None):
+        """
+        Cancel a recurring payment.
+        https://doc.cryptomus.com/merchant-api/recurring/cancel
+        Requires PAYMENT API key
+        """
+        if (not recurrence_uuid) and (not order_id):
+            raise pyCryptomusAPIException(0, "You need to pass one of the required parameters")
+        params = {}
+        if recurrence_uuid:
+            params["uuid"] = recurrence_uuid
+        if order_id:
+            params["order_id"] = order_id
+        resp = self.__request("v1/recurrence/cancel", 1, **params).get("result")
+        return Recurrence.de_json(resp)
 
     def balance(self):
         """
@@ -555,6 +777,6 @@ class pyCryptomusAPI:
         https://doc.cryptomus.com/balance
         Requires PAYMENT API key
         """
-        method = "balance"
+        method = "v1/balance"
         resp = self.__request(method, 1).get("result")
         return Balance.de_json(resp[0])

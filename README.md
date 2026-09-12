@@ -3,9 +3,8 @@
 [![PyPi downloads](https://img.shields.io/pypi/dm/pyCryptomusAPI.svg)](https://pypi.org/project/pyCryptomusAPI/)
 
 # <p align="center">pyCryptomusAPI</p>
-Python implementation of [Cryptomus](https://cryptomus.com) public [API](https://doc.cryptomus.com)
+Python implementation of [Cryptomus](https://cryptomus.com) and [Heleket](https://heleket.com) public [API](https://doc.cryptomus.com)
 
-# 01.07.2025. This library is alive and up to date. No recent commits means it require no fixes!
 If you found a bug or have a feature request, just create an issue!
 
 # Installation
@@ -15,7 +14,7 @@ $ pip install pyCryptomusAPI
 ```
 
 # Usage
-Everything is as simple as the [API](https://help.crypt.bot/crypto-pay-api#available-methods) itself.
+Everything is as simple as the [API](https://doc.cryptomus.com/) itself.
 1. Create pyCryptomusAPI instance
 2. Access API methods in pythonic notation (e.g. "Creating an invoice" -> create_invoice())
 3. Most methods return result as correspondent class, so you can access data as fields 
@@ -29,7 +28,17 @@ balance = client.balance()
 for item in balance.merchant:
     print("Merchant balance: {} {}".format(item.balance, item.currency_code))
 ```
-You can also check tests.py.
+Available methods include:
+
+* Payments: create_invoice(), create_wallet(), payment_qr_code(), wallet_qr_code(),
+  block_wallet(), block_wallet_refund(), payment_information(), refund(),
+  resend_payment_webhook(), test_payment_webhook(), payment_history(),
+  payment_services(), mark_payment_as_paid()
+* Payouts: create_payout(), payout_information(), payout_history(), payout_services(),
+  transfer_to_personal(), transfer_to_business(), test_payout_webhook()
+* Recurring payments: create_recurrence(), recurrence_information(),
+  recurrence_history(), cancel_recurrence()
+* Other: balance()
 
 # Exceptions
-Exceptions are rised using pyCryptomusAPIException class.
+Exceptions are raised using pyCryptomusAPIException class.

@@ -268,6 +268,7 @@ class Wallet(JsonDeserializable):
         self.address = None
         self.network = None
         self.currency = None
+        self.url = None
 
     @classmethod
     def de_json(cls, json_dict):
@@ -344,5 +345,54 @@ class PayoutHistory(JsonDeserializable):
         data = cls.check_json(json_dict)
         instance = super(PayoutHistory, cls).de_json(data, process_mode=2)
         instance.items = [Payout.de_json(i) for i in instance.items]
+        instance.paginate = PaymentPaginate.de_json(instance.paginate)
+        return instance
+
+# noinspection PyMethodOverriding
+class Recurrence(JsonDeserializable):
+    def __init__(self):
+        self.uuid = None
+        self.name = None
+        self.order_id = None
+        self.amount = None
+        self.currency = None
+        self.payer_currency = None
+        self.payer_amount_usd = None
+        self.payer_amount = None
+        self.url_callback = None
+        self.discount_days = None
+        self.discount_amount = None
+        self.end_of_discount = None
+        self.period = None
+        self.status = None
+        self.url = None
+        self.last_pay_off = None
+        self.additional_data = None
+
+    @classmethod
+    def de_json(cls, json_dict):
+        data = cls.check_json(json_dict)
+        instance = super(Recurrence, cls).de_json(data, process_mode=2)
+        if instance.amount is not None:
+            instance.amount = float(instance.amount)
+        if instance.payer_amount_usd is not None:
+            instance.payer_amount_usd = float(instance.payer_amount_usd)
+        if instance.payer_amount is not None:
+            instance.payer_amount = float(instance.payer_amount)
+        if instance.discount_amount is not None:
+            instance.discount_amount = float(instance.discount_amount)
+        return instance
+
+# noinspection PyMethodOverriding
+class RecurrencesHistory(JsonDeserializable):
+    def __init__(self):
+        self.items = []
+        self.paginate = PaymentPaginate()
+
+    @classmethod
+    def de_json(cls, json_dict):
+        data = cls.check_json(json_dict)
+        instance = super(RecurrencesHistory, cls).de_json(data, process_mode=2)
+        instance.items = [Recurrence.de_json(i) for i in instance.items]
         instance.paginate = PaymentPaginate.de_json(instance.paginate)
         return instance
