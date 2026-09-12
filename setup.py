@@ -13,7 +13,7 @@ with open('pyCryptomusAPI/version.py', 'r', encoding='utf-8') as f:  # Credits: 
 
 setup(name='pyCryptomusAPI',
       version=version,
-      description='Python implementation of Cryptomus (https://cryptomus.com) pubilc API',
+      description='Python implementation of Cryptomus (https://cryptomus.com) and Heleket (https://heleket.com) pubilc API',
       long_description=read('README.md'),
       long_description_content_type="text/markdown",
       author='Badiboy',
@@ -21,10 +21,10 @@ setup(name='pyCryptomusAPI',
       packages=['pyCryptomusAPI'],
       install_requires=['requests'],
       license='MIT license',
-      keywords="Crypto Pay API Cryptomus",
+      keywords="Crypto Pay API Cryptomus Heleket",
       classifiers=[
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 5 - Production/Stable',
           'Programming Language :: Python :: 3',
-          'License :: OSI Approved :: MIT License',
+#          'License :: OSI Approved :: MIT License',
       ],
 )
