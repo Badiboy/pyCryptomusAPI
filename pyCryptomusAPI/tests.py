@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from . import api as api_module
 from .api import pyCryptomusAPI
+from .webhooks import WebhookVerificationError
 
 
 class MockResponse:
@@ -44,6 +45,11 @@ class TestPyCryptomusAPI(unittest.TestCase):
             "state": 0,
             "result": {"items": [], "paginate": {"count": 0, "perPage": 15}},
         })
+
+    @staticmethod
+    def webhook_sign(data, api_key):
+        signed_data = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("/", "\\/")
+        return md5(base64.b64encode(signed_data.encode("utf-8")) + api_key.encode("utf-8")).hexdigest()
 
     @patch.object(api_module.requests, "post")
     def test_create_invoice(self, post):
@@ -235,6 +241,69 @@ class TestPyCryptomusAPI(unittest.TestCase):
         recurrence = self.client.cancel_recurrence(recurrence_uuid="recurrence-id")
         self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v1/recurrence/cancel")
         self.assertEqual(recurrence.uuid, "recurrence-id")
+
+    def test_process_payment_webhook(self):
+        webhook_data = {
+            "type": "payment", "uuid": "payment-id", "order_id": "payment-order",
+            "amount": "3.00000000", "payment_amount": "3.00000000",
+            "payment_amount_usd": "0.23", "merchant_amount": "2.94000000",
+            "commission": "0.06000000", "is_final": True, "status": "paid",
+            "from": "payer-wallet", "network": "tron", "currency": "TRX",
+            "payer_currency": "TRX", "payer_amount": "0.00234567",
+            "payer_amount_exchange_rate": "42650.00000000", "additional_data": "Тест",
+            "convert": {"to_currency": "USDT", "commission": "0", "rate": "0.07700000",
+                        "amount": "0.22638000"},
+            "txid": "transaction/with/slash",
+        }
+        webhook_data["sign"] = self.webhook_sign(webhook_data, "payment-key")
+
+        webhook = self.client.process_payment_webhook(webhook_data)
+        self.assertEqual(webhook.uuid, "payment-id")
+        self.assertEqual(webhook.from_, "payer-wallet")
+        self.assertEqual(webhook.amount, 3.0)
+        self.assertEqual(webhook.convert.rate, 0.077)
+        self.assertIn("sign", webhook_data)
+
+        webhook = self.client.process_payment_webhook(json.dumps(webhook_data, ensure_ascii=False))
+        self.assertEqual(webhook.status, "paid")
+        webhook = self.client.process_payment_webhook(json.dumps(webhook_data).encode("utf-8"))
+        self.assertEqual(webhook.txid, "transaction/with/slash")
+
+        wallet_data = webhook_data.copy()
+        wallet_data["type"] = "wallet"
+        wallet_data.pop("sign")
+        wallet_data["sign"] = self.webhook_sign(wallet_data, "payment-key")
+        webhook = self.client.process_payment_webhook(wallet_data)
+        self.assertEqual(webhook.type, "wallet")
+
+    def test_process_payout_webhook(self):
+        webhook_data = {
+            "type": "payout", "uuid": "payout-id", "order_id": "payout-order",
+            "amount": "207.00000000", "merchant_amount": "207.30000000",
+            "commission": "0.30000000", "is_final": True, "status": "fail",
+            "fail_reason": "aml", "txid": None, "currency": "USDT", "network": "bsc",
+            "payer_currency": "USDT", "payer_amount": "207.00000000",
+        }
+        webhook_data["sign"] = self.webhook_sign(webhook_data, "payout-key")
+
+        webhook = self.client.process_payout_webhook(webhook_data)
+        self.assertEqual(webhook.uuid, "payout-id")
+        self.assertEqual(webhook.merchant_amount, 207.3)
+        self.assertEqual(webhook.fail_reason, "aml")
+
+    def test_process_webhook_rejects_invalid_payload(self):
+        webhook_data = {"type": "payment", "uuid": "payment-id"}
+        webhook_data["sign"] = self.webhook_sign(webhook_data, "payment-key")
+        webhook_data["sign"] = "invalid"
+
+        with self.assertRaises(WebhookVerificationError):
+            self.client.process_payment_webhook(webhook_data)
+        with self.assertRaises(WebhookVerificationError):
+            self.client.process_payout_webhook(webhook_data)
+        with self.assertRaises(WebhookVerificationError):
+            self.client.process_payment_webhook({"type": "payment"})
+        with self.assertRaises(WebhookVerificationError):
+            self.client.process_payment_webhook("not json")
 
 
 if __name__ == "__main__":

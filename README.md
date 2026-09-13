@@ -38,6 +38,7 @@ Available methods include:
   transfer_to_personal(), transfer_to_business(), test_payout_webhook()
 * Recurring payments: create_recurrence(), recurrence_information(),
   recurrence_history(), cancel_recurrence()
+* Webhooks: process_payment_webhook(), process_payout_webhook()
 * Other: balance()
 
 # Exceptions
