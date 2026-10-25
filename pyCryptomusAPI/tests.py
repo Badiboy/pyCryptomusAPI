@@ -153,10 +153,17 @@ class TestPyCryptomusAPI(unittest.TestCase):
         self.assertTrue(self.client.resend_payment_webhook(order_id="invoice-order")["success"])
         self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v2/payment/resend")
 
+        self.assertTrue(self.client.resend_payment_webhook(txid="transaction-id")["success"])
+        self.assertEqual(json.loads(post.call_args.kwargs["data"]), {"txid": "transaction-id"})
+
         post.return_value = MockResponse({"state": 0, "result": []})
         self.assertEqual(
             self.client.test_payment_webhook("https://example.com/callback", "USDT", "tron"), [])
         self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v1/test-webhook/payment")
+
+        self.assertEqual(
+            self.client.test_wallet_webhook("https://example.com/callback", "USDT", "tron"), [])
+        self.assertEqual(post.call_args.args[0], "https://api.cryptomus.com/v1/test-webhook/wallet")
 
         post.return_value = MockResponse({"state": 0, "result": {"success": True}})
         self.assertTrue(self.client.mark_payment_as_paid(order_id="invoice-order")["success"])
@@ -253,6 +260,9 @@ class TestPyCryptomusAPI(unittest.TestCase):
             "payer_amount_exchange_rate": "42650.00000000", "additional_data": "Тест",
             "convert": {"to_currency": "USDT", "commission": "0", "rate": "0.07700000",
                         "amount": "0.22638000"},
+            "convert_from": {"from_currency": "USDT", "from_amount": "10.00",
+                             "from_network": "tron"},
+            "aml_verification_url": "https://example.com/aml",
             "txid": "transaction/with/slash",
         }
         webhook_data["sign"] = self.webhook_sign(webhook_data, "payment-key")
@@ -262,6 +272,9 @@ class TestPyCryptomusAPI(unittest.TestCase):
         self.assertEqual(webhook.from_, "payer-wallet")
         self.assertEqual(webhook.amount, 3.0)
         self.assertEqual(webhook.convert.rate, 0.077)
+        self.assertEqual(webhook.convert_from.from_currency, "USDT")
+        self.assertEqual(webhook.convert_from.from_amount, 10.0)
+        self.assertEqual(webhook.aml_verification_url, "https://example.com/aml")
         self.assertIn("sign", webhook_data)
 
         webhook = self.client.process_payment_webhook(json.dumps(webhook_data, ensure_ascii=False))

@@ -469,6 +469,27 @@ class WebhookConvert(JsonDeserializable):
         return instance
 
 # noinspection PyMethodOverriding
+class WebhookConvertFrom(JsonDeserializable):
+    """Incorrect payment conversion details from a payment webhook.
+
+    :param from_currency: Currency from which the incorrect payment was made.
+    :param from_amount: Amount received in the source currency.
+    :param from_network: Blockchain network code of the source payment.
+    """
+    def __init__(self):
+        self.from_currency = None
+        self.from_amount = None
+        self.from_network = None
+
+    @classmethod
+    def de_json(cls, json_dict):
+        data = cls.check_json(json_dict)
+        instance = super(WebhookConvertFrom, cls).de_json(data, process_mode=2)
+        if instance.from_amount is not None:
+            instance.from_amount = float(instance.from_amount)
+        return instance
+
+# noinspection PyMethodOverriding
 class PaymentWebhook(JsonDeserializable):
     """Verified payment or static wallet webhook payload.
 
@@ -481,7 +502,7 @@ class PaymentWebhook(JsonDeserializable):
     :param merchant_amount: Amount credited to the merchant after commissions.
     :param commission: Cryptomus commission amount.
     :param is_final: Whether the invoice is finalized.
-    :param status: Payment status.
+    :param status: Payment status, including ``locked`` when AML verification is required.
     :param from_: Payer wallet address (API field ``from``).
     :param wallet_address_uuid: Static wallet UUID.
     :param network: Blockchain network used for payment.
@@ -492,6 +513,8 @@ class PaymentWebhook(JsonDeserializable):
     :param transfer_id: Internal P2P transfer identifier.
     :param additional_data: Data supplied when creating the invoice.
     :param convert: Automatic conversion information, if enabled.
+    :param convert_from: Incorrect payment conversion information, if applicable.
+    :param aml_verification_url: AML verification URL when status is ``locked``.
     :param txid: Blockchain transaction hash, if available.
     """
     def __init__(self):
@@ -515,6 +538,8 @@ class PaymentWebhook(JsonDeserializable):
         self.transfer_id = None
         self.additional_data = None
         self.convert = None
+        self.convert_from = None
+        self.aml_verification_url = None
         self.txid = None
 
     @classmethod
@@ -528,6 +553,8 @@ class PaymentWebhook(JsonDeserializable):
                 setattr(instance, field, float(getattr(instance, field)))
         if instance.convert is not None:
             instance.convert = WebhookConvert.de_json(instance.convert)
+        if instance.convert_from is not None:
+            instance.convert_from = WebhookConvertFrom.de_json(instance.convert_from)
         return instance
 
 # noinspection PyMethodOverriding

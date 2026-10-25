@@ -7,7 +7,7 @@ name = "pyCryptomusAPI"
 dynamic = ["version"]
 description = "Python implementation of Cryptomus (https://cryptomus.com) public API"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 authors = [
     {name = "Badiboy"},
